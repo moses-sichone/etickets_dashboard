@@ -186,28 +186,28 @@ export function AdminDashboard() {
           value={metrics?.total_users?.toLocaleString() || stats.totalUsers?.toLocaleString() || '0'}
           description="Active users in the system"
           icon={Users}
-          trend={{ value: metrics?.monthly_growth || 12, isPositive: true }}
+          trend={{ value: metrics?.user_growth_rate || stats.userGrowthRate || 0, isPositive: true }}
         />
         <StatsCard
           title="Active Events"
           value={metrics?.active_events?.toLocaleString() || stats.activeEvents?.toLocaleString() || '0'}
           description="Currently active events"
           icon={Calendar}
-          trend={{ value: 8, isPositive: true }}
+          trend={{ value: metrics?.event_growth_rate || stats.eventGrowthRate || 0, isPositive: true }}
         />
         <StatsCard
           title="Tickets Sold"
           value={metrics?.total_tickets_sold?.toLocaleString() || stats.ticketsSold?.toLocaleString() || '0'}
           description="Total tickets sold"
           icon={Ticket}
-          trend={{ value: 15, isPositive: true }}
+          trend={{ value: metrics?.ticket_growth_rate || stats.ticketGrowthRate || 0, isPositive: true }}
         />
         <StatsCard
           title="Active Merchants"
-          value={stats.activeMerchants?.toLocaleString() || '0'}
+          value={metrics?.active_merchants?.toLocaleString() || stats.activeMerchants?.toLocaleString() || '0'}
           description="Verified merchants"
           icon={Store}
-          trend={{ value: 5, isPositive: true }}
+          trend={{ value: metrics?.merchant_growth_rate || stats.merchantGrowthRate || 0, isPositive: true }}
         />
       </div>
 
@@ -218,21 +218,21 @@ export function AdminDashboard() {
           value={`$${revenue?.total_revenue?.toLocaleString() || metrics?.total_revenue?.toLocaleString() || stats.totalRevenue?.toLocaleString() || '0'}`}
           description="Revenue this month"
           icon={DollarSign}
-          trend={{ value: metrics?.monthly_growth || stats.monthlyGrowth || 0, isPositive: true }}
+          trend={{ value: metrics?.revenue_growth_rate || stats.revenueGrowthRate || 0, isPositive: true }}
         />
         <StatsCard
           title="Monthly Growth"
-          value={`${metrics?.monthly_growth || stats.monthlyGrowth || 0}%`}
+          value={`${metrics?.monthly_growth_rate || stats.monthlyGrowthRate || 0}%`}
           description="Compared to last month"
           icon={TrendingUp}
-          trend={{ value: metrics?.monthly_growth || stats.monthlyGrowth || 0, isPositive: true }}
+          trend={{ value: metrics?.monthly_growth_rate || stats.monthlyGrowthRate || 0, isPositive: true }}
         />
         <StatsCard
           title="Conversion Rate"
           value={`${metrics?.conversion_rate || stats.conversionRate || 0}%`}
           description="Ticket conversion rate"
           icon={ChartBar}
-          trend={{ value: 2, isPositive: true }}
+          trend={{ value: metrics?.conversion_growth_rate || stats.conversionGrowthRate || 0, isPositive: true }}
         />
       </div>
 

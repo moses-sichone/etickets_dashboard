@@ -117,7 +117,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     }
 
     const data = await response.json()
-    const newAccessToken = data.access
+    const newAccessToken = data.data.access
 
     // Update the user object with new access token
     const currentUser = getCurrentUser()

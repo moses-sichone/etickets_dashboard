@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { refreshAccessToken, clearAuth } from '@/lib/auth'
 
 export interface AnalyticsMetricsData {
   total_users: number
@@ -92,8 +93,44 @@ export function useAnalyticsData(period: string = 'month', merchantId?: string):
         throw new Error('Authentication token not found.');
       }
 
+      const handleResponse = async (response: Response, endpoint: string) => {
+        if (response.status === 401) {
+          console.log(`AnalyticsData: Received 401 from ${endpoint}, attempting token refresh`)
+          
+          // Try to refresh the token
+          const newToken = await refreshAccessToken()
+          if (newToken) {
+            console.log(`AnalyticsData: Token refreshed successfully, retrying ${endpoint}`)
+            // Retry the request with new token
+            const retryResponse = await fetch(endpoint, {
+              headers: {
+                'Authorization': `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            
+            if (retryResponse.ok) {
+              return await retryResponse.json()
+            }
+          }
+          
+          // If refresh failed or retry still failed, clear auth and redirect to login
+          console.log(`AnalyticsData: Token refresh failed for ${endpoint}, clearing auth and redirecting`)
+          clearAuth()
+          window.location.href = '/login'
+          throw new Error('Session expired. Please login again.')
+        }
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${endpoint}`)
+        }
+        
+        return await response.json()
+      }
+
       // Fetch metrics
-      const metricsResponse = await fetch(`/api/analytics/metrics?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`, {
+      const metricsEndpoint = `/api/analytics/metrics/?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`
+      const metricsResponse = await fetch(metricsEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -101,12 +138,13 @@ export function useAnalyticsData(period: string = 'month', merchantId?: string):
       });
 
       if (metricsResponse.ok) {
-        const metricsResult = await metricsResponse.json()
+        const metricsResult = await handleResponse(metricsResponse, metricsEndpoint)
         setMetrics(metricsResult.data || metricsResult)
       }
 
       // Fetch performance
-      const performanceResponse = await fetch(`/api/analytics/performance?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`, {
+      const performanceEndpoint = `/api/analytics/performance/?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`
+      const performanceResponse = await fetch(performanceEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -114,12 +152,13 @@ export function useAnalyticsData(period: string = 'month', merchantId?: string):
       });
 
       if (performanceResponse.ok) {
-        const performanceResult = await performanceResponse.json()
+        const performanceResult = await handleResponse(performanceResponse, performanceEndpoint)
         setPerformance(performanceResult.data || performanceResult)
       }
 
       // Fetch top events
-      const topEventsResponse = await fetch(`/api/analytics/top-events?limit=10&period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`, {
+      const topEventsEndpoint = `/api/analytics/top-events/?limit=10&period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`
+      const topEventsResponse = await fetch(topEventsEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -127,12 +166,13 @@ export function useAnalyticsData(period: string = 'month', merchantId?: string):
       });
 
       if (topEventsResponse.ok) {
-        const topEventsResult = await topEventsResponse.json()
+        const topEventsResult = await handleResponse(topEventsResponse, topEventsEndpoint)
         setTopEvents(topEventsResult.data || topEventsResult)
       }
 
       // Fetch trends
-      const trendsResponse = await fetch(`/api/analytics/trends?period=${period}&metric=revenue${merchantId ? `&merchant_id=${merchantId}` : ''}`, {
+      const trendsEndpoint = `/api/analytics/trends/?period=${period}&metric=revenue${merchantId ? `&merchant_id=${merchantId}` : ''}`
+      const trendsResponse = await fetch(trendsEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -140,7 +180,7 @@ export function useAnalyticsData(period: string = 'month', merchantId?: string):
       });
 
       if (trendsResponse.ok) {
-        const trendsResult = await trendsResponse.json()
+        const trendsResult = await handleResponse(trendsResponse, trendsEndpoint)
         setTrends(trendsResult.data || trendsResult)
       }
 

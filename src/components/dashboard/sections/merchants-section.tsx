@@ -4,13 +4,66 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Store, Users, DollarSign, Clock, Plus, Eye, Edit } from 'lucide-react'
+import { Store, Users, DollarSign, Clock, Plus, Eye, Edit, Check, X } from 'lucide-react'
 import { useMerchantsData } from '@/hooks/use-merchants-data'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { OnboardMerchantForm } from '@/components/forms/onboard-merchant-form'
+import { approveMerchant, rejectMerchant } from '@/lib/api/merchants'
+import { useState } from 'react'
+import { toast } from '@/hooks/use-toast'
 
 export function MerchantsSection() {
   const { merchants, loading, error, refetch } = useMerchantsData()
+  const [showMerchantDialog, setShowMerchantDialog] = useState(false)
+  const [processingId, setProcessingId] = useState<number | null>(null)
+
+  const handleApprove = async (merchantId: number) => {
+    try {
+      setProcessingId(merchantId)
+      await approveMerchant(merchantId)
+      toast({
+        title: "Merchant Approved",
+        description: "Merchant has been successfully approved.",
+      })
+      refetch()
+    } catch (error) {
+      toast({
+        title: "Approval Failed",
+        description: error instanceof Error ? error.message : "Failed to approve merchant",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleReject = async (merchantId: number) => {
+    try {
+      setProcessingId(merchantId)
+      await rejectMerchant(merchantId, "Rejected by admin")
+      toast({
+        title: "Merchant Rejected",
+        description: "Merchant has been rejected.",
+      })
+      refetch()
+    } catch (error) {
+      toast({
+        title: "Rejection Failed",
+        description: error instanceof Error ? error.message : "Failed to reject merchant",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingId(null)
+    }
+  }
 
   const getStatusBadge = (status: 'active' | 'pending' | 'suspended' | 'rejected') => {
     const variants = {
@@ -57,10 +110,26 @@ export function MerchantsSection() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Onboard Merchant
-          </Button>
+          <Dialog open={showMerchantDialog} onOpenChange={setShowMerchantDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Onboard Merchant
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Onboard New Merchant</DialogTitle>
+              </DialogHeader>
+              <OnboardMerchantForm 
+                onSuccess={() => {
+                  setShowMerchantDialog(false)
+                  refetch()
+                }}
+                onCancel={() => setShowMerchantDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
           <Button variant="outline">
             <Clock className="mr-2 h-4 w-4" />
             Pending Applications
@@ -227,6 +296,28 @@ export function MerchantsSection() {
                         <Button variant="ghost" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {merchant.status === 'pending' && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleApprove(merchant.id)}
+                              disabled={processingId === merchant.id}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleReject(merchant.id)}
+                              disabled={processingId === merchant.id}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

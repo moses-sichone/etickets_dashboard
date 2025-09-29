@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { refreshAccessToken, clearAuth } from '@/lib/auth'
 
 interface DashboardData {
   stats: Record<string, any>
@@ -33,8 +34,8 @@ export function useDashboardData(): UseDashboardDataReturn {
 
     try {
       const endpoint = user.role === 'ADMIN' 
-        ? '/api/dashboard/admin' 
-        : '/api/dashboard/merchant'
+        ? '/api/dashboard/admin/' 
+        : '/api/dashboard/merchant/'
 
       const accessToken = getAccessToken();
       if (!accessToken) {
@@ -47,6 +48,39 @@ export function useDashboardData(): UseDashboardDataReturn {
           'Content-Type': 'application/json',
         },
       });
+      
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        console.log('DashboardData: Received 401, attempting token refresh')
+        
+        // Try to refresh the token
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          console.log('DashboardData: Token refreshed successfully, retrying request')
+          // Retry the request with new token
+          const retryResponse = await fetch(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (retryResponse.ok) {
+            const result = await retryResponse.json()
+            if (result.success) {
+              setData(result.data)
+              setLoading(false)
+              return
+            }
+          }
+        }
+        
+        // If refresh failed or retry still failed, clear auth and redirect to login
+        console.log('DashboardData: Token refresh failed, clearing auth and redirecting')
+        clearAuth()
+        window.location.href = '/login'
+        throw new Error('Session expired. Please login again.')
+      }
       
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data')

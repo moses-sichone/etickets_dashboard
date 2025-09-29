@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { refreshAccessToken, clearAuth } from '@/lib/auth'
 
 export interface RevenueData {
   total_revenue: number
@@ -89,8 +90,44 @@ export function useRevenueData(period: string = 'month', merchantId?: string): U
         throw new Error('Authentication token not found.');
       }
 
+      const handleResponse = async (response: Response, endpoint: string) => {
+        if (response.status === 401) {
+          console.log(`RevenueData: Received 401 from ${endpoint}, attempting token refresh`)
+          
+          // Try to refresh the token
+          const newToken = await refreshAccessToken()
+          if (newToken) {
+            console.log(`RevenueData: Token refreshed successfully, retrying ${endpoint}`)
+            // Retry the request with new token
+            const retryResponse = await fetch(endpoint, {
+              headers: {
+                'Authorization': `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            
+            if (retryResponse.ok) {
+              return await retryResponse.json()
+            }
+          }
+          
+          // If refresh failed or retry still failed, clear auth and redirect to login
+          console.log(`RevenueData: Token refresh failed for ${endpoint}, clearing auth and redirecting`)
+          clearAuth()
+          window.location.href = '/login'
+          throw new Error('Session expired. Please login again.')
+        }
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${endpoint}`)
+        }
+        
+        return await response.json()
+      }
+
       // Fetch revenue data
-      const revenueResponse = await fetch(`/api/revenue?period=${period}${merchantId ? `&merchantId=${merchantId}` : ''}`, {
+      const revenueEndpoint = `/api/revenue/?period=${period}${merchantId ? `&merchantId=${merchantId}` : ''}`
+      const revenueResponse = await fetch(revenueEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -98,12 +135,13 @@ export function useRevenueData(period: string = 'month', merchantId?: string): U
       });
 
       if (revenueResponse.ok) {
-        const revenueResult = await revenueResponse.json()
+        const revenueResult = await handleResponse(revenueResponse, revenueEndpoint)
         setRevenue(revenueResult.data || revenueResult)
       }
 
       // Fetch distribution data
-      const distributionResponse = await fetch(`/api/revenue/distribution?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`, {
+      const distributionEndpoint = `/api/revenue/distribution/?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`
+      const distributionResponse = await fetch(distributionEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -111,12 +149,13 @@ export function useRevenueData(period: string = 'month', merchantId?: string): U
       });
 
       if (distributionResponse.ok) {
-        const distributionResult = await distributionResponse.json()
+        const distributionResult = await handleResponse(distributionResponse, distributionEndpoint)
         setDistribution(distributionResult.data || distributionResult)
       }
 
       // Fetch payouts data
-      const payoutsResponse = await fetch(`/api/revenue/payouts?${merchantId ? `merchant_id=${merchantId}&` : ''}page=1&page_size=20`, {
+      const payoutsEndpoint = `/api/revenue/payouts/?${merchantId ? `merchant_id=${merchantId}&` : ''}page=1&page_size=20`
+      const payoutsResponse = await fetch(payoutsEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -124,12 +163,13 @@ export function useRevenueData(period: string = 'month', merchantId?: string): U
       });
 
       if (payoutsResponse.ok) {
-        const payoutsResult = await payoutsResponse.json()
+        const payoutsResult = await handleResponse(payoutsResponse, payoutsEndpoint)
         setPayouts(payoutsResult.data || payoutsResult)
       }
 
       // Fetch trends data
-      const trendsResponse = await fetch(`/api/revenue/trends?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`, {
+      const trendsEndpoint = `/api/revenue/trends/?period=${period}${merchantId ? `&merchant_id=${merchantId}` : ''}`
+      const trendsResponse = await fetch(trendsEndpoint, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -137,7 +177,7 @@ export function useRevenueData(period: string = 'month', merchantId?: string): U
       });
 
       if (trendsResponse.ok) {
-        const trendsResult = await trendsResponse.json()
+        const trendsResult = await handleResponse(trendsResponse, trendsEndpoint)
         setTrends(trendsResult.data || trendsResult)
       }
 

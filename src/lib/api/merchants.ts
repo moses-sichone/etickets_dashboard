@@ -1,4 +1,4 @@
-import { getAuthHeader } from '@/lib/auth'
+import { getAuthHeader, refreshAccessToken, clearAuth } from '@/lib/auth'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -50,6 +50,43 @@ class MerchantAPI {
       statusText: response.statusText,
       url: response.url
     })
+    
+    // Handle 401 Unauthorized - token expired
+    if (response.status === 401) {
+      console.log('MerchantAPI: Received 401, attempting token refresh')
+      
+      // Try to refresh the token
+      const newToken = await refreshAccessToken()
+      if (newToken) {
+        console.log('MerchantAPI: Token refreshed successfully, retrying request')
+        // Retry the request with new token
+        const newAuthHeader = getAuthHeader()
+        const newConfig: RequestInit = {
+          ...config,
+          headers: {
+            ...config.headers,
+            ...newAuthHeader,
+          },
+        }
+        
+        const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, newConfig)
+        if (retryResponse.ok) {
+          const data = await retryResponse.json()
+          console.log('MerchantAPI Success after retry', {
+            endpoint,
+            dataType: typeof data,
+            dataKeys: Object.keys(data || {})
+          })
+          return data
+        }
+      }
+      
+      // If refresh failed or retry still failed, clear auth and redirect to login
+      console.log('MerchantAPI: Token refresh failed, clearing auth and redirecting')
+      clearAuth()
+      window.location.href = '/login'
+      throw new Error('Session expired. Please login again.')
+    }
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
