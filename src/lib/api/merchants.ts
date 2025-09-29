@@ -1,5 +1,4 @@
 import { getAuthHeader } from '@/lib/auth'
-import { debug } from '@/lib/debug'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -50,7 +49,7 @@ class MerchantAPI {
       ...options,
     }
 
-    debug.info('MerchantAPI Request', {
+    console.log('MerchantAPI Request', {
       endpoint,
       method: options.method || 'GET',
       hasAuthHeader: !!authHeader.Authorization,
@@ -59,7 +58,7 @@ class MerchantAPI {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
     
-    debug.info('MerchantAPI Response', {
+    console.log('MerchantAPI Response', {
       endpoint,
       status: response.status,
       statusText: response.statusText,
@@ -68,7 +67,7 @@ class MerchantAPI {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      debug.error('MerchantAPI Error', {
+      console.error('MerchantAPI Error', {
         endpoint,
         status: response.status,
         errorData
@@ -77,7 +76,7 @@ class MerchantAPI {
     }
 
     const data = await response.json()
-    debug.info('MerchantAPI Success', {
+    console.log('MerchantAPI Success', {
       endpoint,
       dataType: typeof data,
       dataKeys: Object.keys(data || {})

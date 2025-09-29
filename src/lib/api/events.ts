@@ -1,5 +1,4 @@
 import { getAuthHeader } from '@/lib/auth'
-import { debug } from '@/lib/debug'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -45,7 +44,7 @@ class EventAPI {
       ...options,
     }
 
-    debug.info('EventAPI Request', {
+    console.log('EventAPI Request', {
       endpoint,
       method: options.method || 'GET',
       hasAuthHeader: !!authHeader.Authorization,
@@ -54,7 +53,7 @@ class EventAPI {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
     
-    debug.info('EventAPI Response', {
+    console.log('EventAPI Response', {
       endpoint,
       status: response.status,
       statusText: response.statusText,
@@ -63,7 +62,7 @@ class EventAPI {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      debug.error('EventAPI Error', {
+      console.error('EventAPI Error', {
         endpoint,
         status: response.status,
         errorData
@@ -72,7 +71,7 @@ class EventAPI {
     }
 
     const data = await response.json()
-    debug.info('EventAPI Success', {
+    console.log('EventAPI Success', {
       endpoint,
       dataType: typeof data,
       dataKeys: Object.keys(data || {})

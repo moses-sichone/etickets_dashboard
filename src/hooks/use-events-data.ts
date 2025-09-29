@@ -70,7 +70,7 @@ export function useEventsData(filters?: {
       const result = await response.json()
       
       // Handle different response formats
-      let eventsData = []
+      let eventsData: EventData[] = []
       if (Array.isArray(result)) {
         eventsData = result
       } else if (result.data && Array.isArray(result.data)) {

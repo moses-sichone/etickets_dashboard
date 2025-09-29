@@ -68,7 +68,7 @@ export function useTicketsData(filters?: {
       const result = await response.json()
       
       // Handle different response formats
-      let ticketsData = []
+      let ticketsData: TicketData[] = []
       if (Array.isArray(result)) {
         ticketsData = result
       } else if (result.data && Array.isArray(result.data)) {

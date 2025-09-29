@@ -1,8 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { saveAuthUser, getCurrentUser, clearAuth, getAccessToken } from '@/lib/auth'
-import { debug, debugAuthStatus } from '@/lib/debug'
+import { saveAuthUser, getCurrentUser, clearAuth, getAccessToken as getStoredAccessToken } from '@/lib/auth'
 
 interface User {
   id: string
@@ -29,15 +28,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for existing session on mount
-    debug.info('AuthContext: Checking for saved user...')
-    debugAuthStatus()
+    console.log('AuthContext: Checking for saved user...')
     
     const savedUser = getCurrentUser();
     if (savedUser) {
-      debug.info('AuthContext: Found saved user:', savedUser);
+      console.log('AuthContext: Found saved user:', savedUser);
       setUser(savedUser);
     } else {
-      debug.info('AuthContext: No saved user found.');
+      console.log('AuthContext: No saved user found.');
     }
     setIsLoading(false);
   }, []);
@@ -46,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     
     try {
-      debug.info('AuthContext: Attempting login', { email })
+      console.log('AuthContext: Attempting login', { email })
       
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -57,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
-      debug.info('AuthContext: Login response', { status: response.status, data })
+      console.log('AuthContext: Login response', { status: response.status, data })
 
       if (response.ok && data.success) {
         const userFromResponse = data.data.user;
@@ -70,17 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           refreshToken: data.data.refresh || '',
         };
         
-        debug.info('AuthContext: Authenticated user object:', authenticatedUser);
+        console.log('AuthContext: Authenticated user object:', authenticatedUser);
         setUser(authenticatedUser);
         saveAuthUser(authenticatedUser);
-        debugAuthStatus() // Log after saving
         return true;
       } else {
-        debug.error('AuthContext: Login failed', { data })
+        console.error('AuthContext: Login failed', { data })
         return false;
       }
     } catch (error) {
-      debug.error('AuthContext: Login error', error)
+      console.error('AuthContext: Login error', error)
       return false;
     } finally {
       setIsLoading(false);
@@ -88,21 +85,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const getAccessToken = (): string | null => {
-    const token = user?.accessToken || getAccessToken();
-    debug.info('AuthContext: getAccessToken called', { 
+    const token = user?.accessToken || getStoredAccessToken();
+    console.log('AuthContext: getAccessToken called', { 
       hasUser: !!user, 
       hasTokenFromUser: !!user?.accessToken, 
-      hasTokenFromStorage: !!getAccessToken(),
+      hasTokenFromStorage: !!getStoredAccessToken(),
       tokenLength: token ? token.length : 0 
     })
     return token;
   };
 
   const logout = () => {
-    debug.info('AuthContext: Logging out')
+    console.log('AuthContext: Logging out')
     setUser(null)
     clearAuth()
-    debugAuthStatus()
   }
 
   return (

@@ -70,7 +70,7 @@ export function useAttendeesData(filters?: {
       const result = await response.json()
       
       // Handle different response formats
-      let attendeesData = []
+      let attendeesData: AttendeeData[] = []
       if (Array.isArray(result)) {
         attendeesData = result
       } else if (result.data && Array.isArray(result.data)) {

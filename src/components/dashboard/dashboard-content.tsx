@@ -51,6 +51,10 @@ export function DashboardContent() {
     return true
   })
 
+  const handleNavigate = (section: string) => {
+    setActiveSection(section as ActiveSection)
+  }
+
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'dashboard':
@@ -80,7 +84,7 @@ export function DashboardContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       {/* Desktop Sidebar - Fixed Position */}
       <div className="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 fixed left-0 top-0 h-full z-20">
-        <Sidebar onNavigate={setActiveSection} activeSection={activeSection} />
+        <Sidebar onNavigate={handleNavigate} activeSection={activeSection} />
       </div>
 
       {/* Main Content Area */}
@@ -100,7 +104,7 @@ export function DashboardContent() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64 p-0">
-                  <Sidebar onNavigate={setActiveSection} activeSection={activeSection} />
+                  <Sidebar onNavigate={handleNavigate} activeSection={activeSection} />
                 </SheetContent>
               </Sheet>
               <Button variant="ghost" size="icon" onClick={logout}>
