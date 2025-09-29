@@ -1,0 +1,43 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    const { searchParams } = new URL(request.url)
+    
+    // Build query parameters
+    const queryParams = new URLSearchParams()
+    if (searchParams.get('period')) queryParams.append('period', searchParams.get('period')!)
+    if (searchParams.get('start_date')) queryParams.append('start_date', searchParams.get('start_date')!)
+    if (searchParams.get('end_date')) queryParams.append('end_date', searchParams.get('end_date')!)
+    if (searchParams.get('merchant_id')) queryParams.append('merchant_id', searchParams.get('merchant_id')!)
+    
+    const queryString = queryParams.toString()
+    const url = `${process.env.BACKEND_API_URL}/api/analytics/metrics${queryString ? `?${queryString}` : ''}`
+    
+    const backendResponse = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader || '',
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await backendResponse.json()
+
+    if (!backendResponse.ok) {
+      return NextResponse.json(
+        { success: false, message: data.message || 'Failed to fetch analytics metrics' },
+        { status: backendResponse.status }
+      )
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Analytics metrics API error:', error)
+    return NextResponse.json(
+      { success: false, message: 'Failed to fetch analytics metrics' },
+      { status: 500 }
+    )
+  }
+}
