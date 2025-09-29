@@ -158,7 +158,7 @@ export function TicketsSection() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Events</p>
                 <p className="text-2xl font-bold">
-                  {new Set(mockTickets.map(t => t.event)).size}
+                  {new Set(tickets.map(t => t.event)).size}
                 </p>
               </div>
               <Calendar className="h-8 w-8 text-indigo-600" />

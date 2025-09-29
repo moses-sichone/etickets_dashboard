@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { StatsCard } from './stats-card'
 import { ChartCard } from './chart-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +11,15 @@ import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useAnalyticsData } from '@/hooks/use-analytics-data'
 import { useRevenueData } from '@/hooks/use-revenue-data'
 import { Button } from '@/components/ui/button'
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { CreateEventForm } from '@/components/forms/create-event-form'
+import { OnboardMerchantForm } from '@/components/forms/onboard-merchant-form'
 import { 
   Users, 
   Calendar, 
@@ -47,6 +57,9 @@ export function AdminDashboard() {
   const { data, loading: dashboardLoading, error: dashboardError, refetch } = useDashboardData()
   const { metrics, performance, topEvents, trends, loading: analyticsLoading, error: analyticsError } = useAnalyticsData()
   const { revenue, distribution, loading: revenueLoading, error: revenueError } = useRevenueData()
+
+  const [showEventDialog, setShowEventDialog] = useState(false)
+  const [showMerchantDialog, setShowMerchantDialog] = useState(false)
 
   const loading = dashboardLoading || analyticsLoading || revenueLoading
   const error = dashboardError || analyticsError || revenueError
@@ -117,14 +130,48 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Event
-          </Button>
-          <Button variant="outline">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Onboard Merchant
-          </Button>
+          <Dialog open={showEventDialog} onOpenChange={setShowEventDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Event</DialogTitle>
+              </DialogHeader>
+              <CreateEventForm 
+                onSuccess={() => {
+                  setShowEventDialog(false)
+                  refetch()
+                }}
+                onCancel={() => setShowEventDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showMerchantDialog} onOpenChange={setShowMerchantDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Onboard Merchant
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Onboard New Merchant</DialogTitle>
+              </DialogHeader>
+              <OnboardMerchantForm 
+                onSuccess={() => {
+                  setShowMerchantDialog(false)
+                  refetch()
+                }}
+                onCancel={() => setShowMerchantDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Generate Report
@@ -142,9 +189,9 @@ export function AdminDashboard() {
           trend={{ value: metrics?.monthly_growth || 12, isPositive: true }}
         />
         <StatsCard
-          title="Total Events"
-          value={metrics?.total_events?.toLocaleString() || stats.totalEvents?.toLocaleString() || '0'}
-          description="Events created this month"
+          title="Active Events"
+          value={metrics?.active_events?.toLocaleString() || stats.activeEvents?.toLocaleString() || '0'}
+          description="Currently active events"
           icon={Calendar}
           trend={{ value: 8, isPositive: true }}
         />
