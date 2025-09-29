@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from './loading-spinner'
 import { ErrorDisplay } from './error-display'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
+import { useAnalyticsData } from '@/hooks/use-analytics-data'
+import { useRevenueData } from '@/hooks/use-revenue-data'
 import { Button } from '@/components/ui/button'
 import { 
   Users, 
@@ -42,7 +44,12 @@ import {
 } from 'recharts'
 
 export function AdminDashboard() {
-  const { data, loading, error, refetch } = useDashboardData()
+  const { data, loading: dashboardLoading, error: dashboardError, refetch } = useDashboardData()
+  const { metrics, performance, topEvents, trends, loading: analyticsLoading, error: analyticsError } = useAnalyticsData()
+  const { revenue, distribution, loading: revenueLoading, error: revenueError } = useRevenueData()
+
+  const loading = dashboardLoading || analyticsLoading || revenueLoading
+  const error = dashboardError || analyticsError || revenueError
 
   if (loading) {
     return (
@@ -70,33 +77,33 @@ export function AdminDashboard() {
 
   const { stats, recentActivity = [], systemAlerts = [] } = data
 
-  // Sample data for charts
-  const revenueData = [
-    { month: 'Jan', revenue: 40000, tickets: 1200 },
-    { month: 'Feb', revenue: 45000, tickets: 1350 },
-    { month: 'Mar', revenue: 38000, tickets: 1100 },
-    { month: 'Apr', revenue: 52000, tickets: 1600 },
-    { month: 'May', revenue: 48000, tickets: 1450 },
-    { month: 'Jun', revenue: 58000, tickets: 1750 },
-    { month: 'Jul', revenue: 65000, tickets: 1950 }
+  // Use real analytics data or fallback to sample data
+  const revenueData = performance?.revenue_by_period || [
+    { period: 'Jan', revenue: 40000, tickets_sold: 1200 },
+    { period: 'Feb', revenue: 45000, tickets_sold: 1350 },
+    { period: 'Mar', revenue: 38000, tickets_sold: 1100 },
+    { period: 'Apr', revenue: 52000, tickets_sold: 1600 },
+    { period: 'May', revenue: 48000, tickets_sold: 1450 },
+    { period: 'Jun', revenue: 58000, tickets_sold: 1750 },
+    { period: 'Jul', revenue: 65000, tickets_sold: 1950 }
   ]
 
-  const categoryData = [
-    { name: 'Music', value: 35, color: '#6366f1' },
-    { name: 'Sports', value: 25, color: '#8b5cf6' },
-    { name: 'Technology', value: 20, color: '#10b981' },
-    { name: 'Business', value: 15, color: '#f59e0b' },
-    { name: 'Art', value: 5, color: '#ef4444' }
+  const categoryData = distribution?.by_category || [
+    { category: 'Music', revenue: 35, percentage: 35 },
+    { category: 'Sports', revenue: 25, percentage: 25 },
+    { category: 'Technology', revenue: 20, percentage: 20 },
+    { category: 'Business', revenue: 15, percentage: 15 },
+    { category: 'Art', revenue: 5, percentage: 5 }
   ]
 
-  const userActivityData = [
-    { day: 'Mon', active: 1200, new: 45 },
-    { day: 'Tue', active: 1350, new: 52 },
-    { day: 'Wed', active: 1100, new: 38 },
-    { day: 'Thu', active: 1400, new: 65 },
-    { day: 'Fri', active: 1600, new: 78 },
-    { day: 'Sat', active: 1800, new: 92 },
-    { day: 'Sun', active: 2100, new: 105 }
+  const userActivityData = performance?.user_activity || [
+    { period: 'Mon', active_users: 1200, new_users: 45 },
+    { period: 'Tue', active_users: 1350, new_users: 52 },
+    { period: 'Wed', active_users: 1100, new_users: 38 },
+    { period: 'Thu', active_users: 1400, new_users: 65 },
+    { period: 'Fri', active_users: 1600, new_users: 78 },
+    { period: 'Sat', active_users: 1800, new_users: 92 },
+    { period: 'Sun', active_users: 2100, new_users: 105 }
   ]
 
   return (
@@ -129,21 +136,21 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Users"
-          value={stats.totalUsers?.toLocaleString() || '0'}
+          value={metrics?.total_users?.toLocaleString() || stats.totalUsers?.toLocaleString() || '0'}
           description="Active users in the system"
           icon={Users}
-          trend={{ value: 12, isPositive: true }}
+          trend={{ value: metrics?.monthly_growth || 12, isPositive: true }}
         />
         <StatsCard
           title="Total Events"
-          value={stats.totalEvents?.toLocaleString() || '0'}
+          value={metrics?.total_events?.toLocaleString() || stats.totalEvents?.toLocaleString() || '0'}
           description="Events created this month"
           icon={Calendar}
           trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Tickets Sold"
-          value={stats.ticketsSold?.toLocaleString() || '0'}
+          value={metrics?.total_tickets_sold?.toLocaleString() || stats.ticketsSold?.toLocaleString() || '0'}
           description="Total tickets sold"
           icon={Ticket}
           trend={{ value: 15, isPositive: true }}
@@ -161,21 +168,21 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <StatsCard
           title="Total Revenue"
-          value={`$${stats.totalRevenue?.toLocaleString() || '0'}`}
+          value={`$${revenue?.total_revenue?.toLocaleString() || metrics?.total_revenue?.toLocaleString() || stats.totalRevenue?.toLocaleString() || '0'}`}
           description="Revenue this month"
           icon={DollarSign}
-          trend={{ value: stats.monthlyGrowth || 0, isPositive: true }}
+          trend={{ value: metrics?.monthly_growth || stats.monthlyGrowth || 0, isPositive: true }}
         />
         <StatsCard
           title="Monthly Growth"
-          value={`${stats.monthlyGrowth || 0}%`}
+          value={`${metrics?.monthly_growth || stats.monthlyGrowth || 0}%`}
           description="Compared to last month"
           icon={TrendingUp}
-          trend={{ value: stats.monthlyGrowth || 0, isPositive: true }}
+          trend={{ value: metrics?.monthly_growth || stats.monthlyGrowth || 0, isPositive: true }}
         />
         <StatsCard
           title="Conversion Rate"
-          value={`${stats.conversionRate || 0}%`}
+          value={`${metrics?.conversion_rate || stats.conversionRate || 0}%`}
           description="Ticket conversion rate"
           icon={ChartBar}
           trend={{ value: 2, isPositive: true }}
@@ -189,7 +196,7 @@ export function AdminDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <RechartsLineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
@@ -203,7 +210,7 @@ export function AdminDashboard() {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="tickets" 
+                  dataKey="tickets_sold" 
                   stroke="#10b981" 
                   strokeWidth={2}
                   dot={{ fill: '#10b981' }}
@@ -224,11 +231,11 @@ export function AdminDashboard() {
                   cy="50%"
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  dataKey="percentage"
+                  label={({ category, percentage }) => `${category} ${percentage}%`}
                 >
                   {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'][index % 5]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -244,12 +251,12 @@ export function AdminDashboard() {
           <ResponsiveContainer width="100%" height="100%">
             <RechartsBarChart data={userActivityData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
+              <XAxis dataKey="period" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="active" fill="#6366f1" name="Active Users" />
-              <Bar dataKey="new" fill="#10b981" name="New Users" />
+              <Bar dataKey="active_users" fill="#6366f1" name="Active Users" />
+              <Bar dataKey="new_users" fill="#10b981" name="New Users" />
             </RechartsBarChart>
           </ResponsiveContainer>
         </div>

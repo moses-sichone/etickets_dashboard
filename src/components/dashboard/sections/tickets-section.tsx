@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Ticket, Users, DollarSign, Calendar, Download, Eye } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { useTicketsData } from '@/hooks/use-tickets-data'
+import { LoadingSpinner } from '../loading-spinner'
+import { ErrorDisplay } from '../error-display'
+import { useState } from 'react'
 
 interface TicketData {
   id: string
@@ -18,53 +22,17 @@ interface TicketData {
   status: 'active' | 'pending' | 'sold-out'
 }
 
-const mockTickets: TicketData[] = [
-  {
-    id: '1',
-    event: 'Summer Music Festival',
-    ticketType: 'General Admission',
-    price: '$89',
-    sold: 1000,
-    available: 200,
-    revenue: '$89,000',
-    status: 'active'
-  },
-  {
-    id: '2',
-    event: 'Summer Music Festival',
-    ticketType: 'VIP',
-    price: '$250',
-    sold: 245,
-    available: 55,
-    revenue: '$61,250',
-    status: 'active'
-  },
-  {
-    id: '3',
-    event: 'AI & ML Summit',
-    ticketType: 'Standard',
-    price: '$299',
-    sold: 320,
-    available: 180,
-    revenue: '$95,680',
-    status: 'pending'
-  },
-  {
-    id: '4',
-    event: 'Championship Finals',
-    ticketType: 'Premium',
-    price: '$150',
-    sold: 850,
-    available: 0,
-    revenue: '$127,500',
-    status: 'sold-out'
-  }
-]
-
 export function TicketsSection() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
   const title = isAdmin ? 'All Tickets' : 'My Tickets'
+  
+  const [filters, setFilters] = useState({
+    status: '',
+    event_id: ''
+  })
+  
+  const { tickets, loading, error, refetch } = useTicketsData(filters)
 
   const getStatusBadge = (status: TicketData['status']) => {
     const variants = {
@@ -86,11 +54,53 @@ export function TicketsSection() {
     )
   }
 
-  const totalStats = mockTickets.reduce((acc, ticket) => ({
+  const totalStats = tickets.reduce((acc, ticket) => ({
     totalSold: acc.totalSold + ticket.sold,
     totalAvailable: acc.totalAvailable + ticket.available,
     totalRevenue: acc.totalRevenue + parseFloat(ticket.revenue.replace(/[$,]/g, ''))
   }), { totalSold: 0, totalAvailable: 0, totalRevenue: 0 })
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              {isAdmin ? 'Manage ticket sales and inventory across the platform' : 'Manage your ticket sales and inventory'}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center h-16">
+                  <LoadingSpinner />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              {isAdmin ? 'Manage ticket sales and inventory across the platform' : 'Manage your ticket sales and inventory'}
+            </p>
+          </div>
+        </div>
+        <ErrorDisplay message={error} onRetry={refetch} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -190,7 +200,7 @@ export function TicketsSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockTickets.map((ticket) => (
+              {tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
                   <TableCell className="font-medium">{ticket.event}</TableCell>
                   <TableCell>{ticket.ticketType}</TableCell>

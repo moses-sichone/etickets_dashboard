@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Calendar, MapPin, Users, Ticket, Plus, Eye, Edit, Trash2, Filter, Download } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { useEventsData } from '@/hooks/use-events-data'
+import { LoadingSpinner } from '../loading-spinner'
+import { ErrorDisplay } from '../error-display'
+import { useState } from 'react'
 
 interface EventData {
   id: string
@@ -20,61 +24,19 @@ interface EventData {
   category: string
 }
 
-const mockEvents: EventData[] = [
-  {
-    id: '1',
-    name: 'Summer Music Festival',
-    date: 'Jul 15, 2024',
-    venue: 'Central Park',
-    merchant: 'Live Nation',
-    ticketsSold: 1245,
-    totalTickets: 1500,
-    revenue: '$45,230',
-    status: 'active',
-    category: 'Music'
-  },
-  {
-    id: '2',
-    name: 'AI & ML Summit',
-    date: 'Aug 20, 2024',
-    venue: 'Convention Center',
-    merchant: 'Tech Events Co',
-    ticketsSold: 420,
-    totalTickets: 500,
-    revenue: '$28,900',
-    status: 'pending',
-    category: 'Technology'
-  },
-  {
-    id: '3',
-    name: 'Championship Finals',
-    date: 'Sep 5, 2024',
-    venue: 'City Stadium',
-    merchant: 'Sports Inc',
-    ticketsSold: 850,
-    totalTickets: 1000,
-    revenue: '$32,500',
-    status: 'active',
-    category: 'Sports'
-  },
-  {
-    id: '4',
-    name: 'Art Exhibition',
-    date: 'Apr 5, 2024',
-    venue: 'Modern Art Gallery',
-    merchant: 'Art Events Ltd',
-    ticketsSold: 150,
-    totalTickets: 200,
-    revenue: '$7,500',
-    status: 'completed',
-    category: 'Art'
-  }
-]
-
 export function EventsSection() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
   const title = isAdmin ? 'All Events' : 'My Events'
+  
+  const [filters, setFilters] = useState({
+    status: '',
+    category: '',
+    startDate: '',
+    endDate: ''
+  })
+  
+  const { events, loading, error, refetch } = useEventsData(filters)
 
   const getStatusBadge = (status: EventData['status']) => {
     const variants = {
@@ -114,12 +76,54 @@ export function EventsSection() {
     )
   }
 
-  const totalStats = mockEvents.reduce((acc, event) => ({
+  const totalStats = events.reduce((acc, event) => ({
     totalEvents: acc.totalEvents + 1,
     activeEvents: acc.activeEvents + (event.status === 'active' ? 1 : 0),
     totalTicketsSold: acc.totalTicketsSold + event.ticketsSold,
     totalRevenue: acc.totalRevenue + parseFloat(event.revenue.replace(/[$,]/g, ''))
   }), { totalEvents: 0, activeEvents: 0, totalTicketsSold: 0, totalRevenue: 0 })
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              {isAdmin ? 'Manage and monitor all platform events' : 'Manage and monitor your events'}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center h-16">
+                  <LoadingSpinner />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              {isAdmin ? 'Manage and monitor all platform events' : 'Manage and monitor your events'}
+            </p>
+          </div>
+        </div>
+        <ErrorDisplay message={error} onRetry={refetch} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -193,7 +197,11 @@ export function EventsSection() {
             <div className="flex items-center space-x-2">
               <Filter className="h-4 w-4 text-gray-500" />
               <label className="text-sm font-medium">Status:</label>
-              <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
+              <select 
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              >
                 <option value="">All</option>
                 <option value="active">Active</option>
                 <option value="pending">Pending</option>
@@ -203,7 +211,11 @@ export function EventsSection() {
             </div>
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium">Category:</label>
-              <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
+              <select 
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                value={filters.category}
+                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+              >
                 <option value="">All Categories</option>
                 <option value="Music">Music</option>
                 <option value="Technology">Technology</option>
@@ -214,9 +226,19 @@ export function EventsSection() {
             </div>
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium">Date Range:</label>
-              <input type="date" className="px-3 py-1 border border-gray-300 rounded-md text-sm" />
+              <input 
+                type="date" 
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                value={filters.startDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              />
               <span>to</span>
-              <input type="date" className="px-3 py-1 border border-gray-300 rounded-md text-sm" />
+              <input 
+                type="date" 
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                value={filters.endDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              />
             </div>
             <Button variant="outline" size="sm">
               <Download className="mr-2 h-4 w-4" />
@@ -255,7 +277,7 @@ export function EventsSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockEvents.map((event) => (
+              {events.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell className="font-medium">
                     <div>

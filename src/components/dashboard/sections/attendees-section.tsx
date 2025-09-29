@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Users, Calendar, MapPin, Ticket, Download, Eye, Mail, Phone } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { useAttendeesData } from '@/hooks/use-attendees-data'
+import { LoadingSpinner } from '../loading-spinner'
+import { ErrorDisplay } from '../error-display'
+import { useState } from 'react'
 
 interface AttendeeData {
   id: string
@@ -20,60 +24,16 @@ interface AttendeeData {
   status: 'confirmed' | 'pending' | 'cancelled'
 }
 
-const mockAttendees: AttendeeData[] = [
-  {
-    id: '1',
-    name: 'John Smith',
-    email: 'john.smith@email.com',
-    phone: '+1 (555) 123-4567',
-    event: 'Summer Music Festival',
-    eventDate: 'Jul 15, 2024',
-    tickets: 2,
-    totalAmount: '$178',
-    purchaseDate: 'Jul 10, 2024',
-    status: 'confirmed'
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 'sarah.j@email.com',
-    phone: '+1 (555) 987-6543',
-    event: 'AI & ML Summit',
-    eventDate: 'Aug 20, 2024',
-    tickets: 1,
-    totalAmount: '$299',
-    purchaseDate: 'Jul 12, 2024',
-    status: 'confirmed'
-  },
-  {
-    id: '3',
-    name: 'Mike Wilson',
-    email: 'mike.w@email.com',
-    phone: '+1 (555) 456-7890',
-    event: 'Championship Finals',
-    eventDate: 'Sep 5, 2024',
-    tickets: 4,
-    totalAmount: '$600',
-    purchaseDate: 'Jul 14, 2024',
-    status: 'pending'
-  },
-  {
-    id: '4',
-    name: 'Emily Davis',
-    email: 'emily.davis@email.com',
-    phone: '+1 (555) 321-0987',
-    event: 'Summer Music Festival',
-    eventDate: 'Jul 15, 2024',
-    tickets: 1,
-    totalAmount: '$89',
-    purchaseDate: 'Jul 8, 2024',
-    status: 'confirmed'
-  }
-]
-
 export function AttendeesSection() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+  
+  const [filters, setFilters] = useState({
+    status: '',
+    event: ''
+  })
+  
+  const { attendees, loading, error, refetch } = useAttendeesData(filters)
 
   const getStatusBadge = (status: AttendeeData['status']) => {
     const variants = {
@@ -89,12 +49,54 @@ export function AttendeesSection() {
     )
   }
 
-  const totalStats = mockAttendees.reduce((acc, attendee) => ({
+  const totalStats = attendees.reduce((acc, attendee) => ({
     totalAttendees: acc.totalAttendees + 1,
     totalTickets: acc.totalTickets + attendee.tickets,
     totalRevenue: acc.totalRevenue + parseFloat(attendee.totalAmount.replace(/[$,]/g, '')),
     confirmedAttendees: acc.confirmedAttendees + (attendee.status === 'confirmed' ? 1 : 0)
   }), { totalAttendees: 0, totalTickets: 0, totalRevenue: 0, confirmedAttendees: 0 })
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Attendees</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage and monitor all event attendees across the platform
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center h-16">
+                  <LoadingSpinner />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Attendees</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage and monitor all event attendees across the platform
+            </p>
+          </div>
+        </div>
+        <ErrorDisplay message={error} onRetry={refetch} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -171,7 +173,11 @@ export function AttendeesSection() {
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium">Status:</label>
-              <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
+              <select 
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              >
                 <option value="">All</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="pending">Pending</option>
@@ -180,7 +186,11 @@ export function AttendeesSection() {
             </div>
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium">Event:</label>
-              <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
+              <select 
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                value={filters.event}
+                onChange={(e) => setFilters(prev => ({ ...prev, event: e.target.value }))}
+              >
                 <option value="">All Events</option>
                 <option value="Summer Music Festival">Summer Music Festival</option>
                 <option value="AI & ML Summit">AI & ML Summit</option>
@@ -226,7 +236,7 @@ export function AttendeesSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockAttendees.map((attendee) => (
+              {attendees.map((attendee) => (
                 <TableRow key={attendee.id}>
                   <TableCell className="font-medium">
                     <div>
