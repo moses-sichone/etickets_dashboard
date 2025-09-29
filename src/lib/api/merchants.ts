@@ -4,35 +4,21 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export interface MerchantData {
   business_name: string
-  business_type: string
-  description?: string
-  contact_name: string
+  contact_person: string
   contact_email: string
   contact_phone?: string
-  address?: string
-  city?: string
-  country?: string
-  website?: string
-  tax_id?: string
-  business_license?: string
-  status?: 'pending' | 'approved' | 'rejected' | 'suspended'
+  tax_information?: string
+  verification_state?: 'pending' | 'approved' | 'rejected' | 'suspended'
 }
 
 export interface MerchantResponse {
   id: number
   business_name: string
-  business_type: string
-  description?: string
-  contact_name: string
+  contact_person: string
   contact_email: string
   contact_phone?: string
-  address?: string
-  city?: string
-  country?: string
-  website?: string
-  tax_id?: string
-  business_license?: string
-  status: 'pending' | 'approved' | 'rejected' | 'suspended'
+  tax_information?: string
+  verification_state: 'pending' | 'approved' | 'rejected' | 'suspended'
   created_at: string
   updated_at: string
 }
@@ -93,7 +79,7 @@ class MerchantAPI {
   }
 
   async getMerchants(params?: {
-    status?: string
+    verification_state?: string
     search?: string
     limit?: number
     offset?: number
@@ -138,7 +124,7 @@ class MerchantAPI {
   async approveMerchant(id: number): Promise<MerchantResponse> {
     return this.request(`/api/merchants/${id}/`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'approved' }),
+      body: JSON.stringify({ verification_state: 'approved' }),
     })
   }
 
@@ -146,7 +132,7 @@ class MerchantAPI {
     return this.request(`/api/merchants/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify({ 
-        status: 'rejected',
+        verification_state: 'rejected',
         rejection_reason: reason 
       }),
     })
