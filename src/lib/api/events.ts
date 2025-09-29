@@ -1,3 +1,6 @@
+import { getAuthHeader } from '@/lib/auth'
+import { debug } from '@/lib/debug'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export interface EventData {
@@ -32,25 +35,50 @@ export interface EventResponse {
 
 class EventAPI {
   private async request(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('access_token')
-    
+    const authHeader = getAuthHeader()
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...authHeader,
         ...options.headers,
       },
       ...options,
     }
 
+    debug.info('EventAPI Request', {
+      endpoint,
+      method: options.method || 'GET',
+      hasAuthHeader: !!authHeader.Authorization,
+      authHeaderPreview: authHeader.Authorization ? `${authHeader.Authorization.substring(0, 30)}...` : null
+    })
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+    
+    debug.info('EventAPI Response', {
+      endpoint,
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url
+    })
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      debug.error('EventAPI Error', {
+        endpoint,
+        status: response.status,
+        errorData
+      })
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    debug.info('EventAPI Success', {
+      endpoint,
+      dataType: typeof data,
+      dataKeys: Object.keys(data || {})
+    })
+
+    return data
   }
 
   async createEvent(eventData: EventData): Promise<EventResponse> {

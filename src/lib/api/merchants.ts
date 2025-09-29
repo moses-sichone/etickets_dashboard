@@ -1,3 +1,6 @@
+import { getAuthHeader } from '@/lib/auth'
+import { debug } from '@/lib/debug'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export interface MerchantData {
@@ -37,25 +40,50 @@ export interface MerchantResponse {
 
 class MerchantAPI {
   private async request(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('access_token')
-    
+    const authHeader = getAuthHeader()
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...authHeader,
         ...options.headers,
       },
       ...options,
     }
 
+    debug.info('MerchantAPI Request', {
+      endpoint,
+      method: options.method || 'GET',
+      hasAuthHeader: !!authHeader.Authorization,
+      authHeaderPreview: authHeader.Authorization ? `${authHeader.Authorization.substring(0, 30)}...` : null
+    })
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+    
+    debug.info('MerchantAPI Response', {
+      endpoint,
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url
+    })
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      debug.error('MerchantAPI Error', {
+        endpoint,
+        status: response.status,
+        errorData
+      })
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    debug.info('MerchantAPI Success', {
+      endpoint,
+      dataType: typeof data,
+      dataKeys: Object.keys(data || {})
+    })
+
+    return data
   }
 
   async createMerchant(merchantData: MerchantData): Promise<MerchantResponse> {

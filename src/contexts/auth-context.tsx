@@ -1,6 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { saveAuthUser, getCurrentUser, clearAuth, getAccessToken } from '@/lib/auth'
+import { debug, debugAuthStatus } from '@/lib/debug'
 
 interface User {
   id: string
@@ -27,19 +29,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for existing session on mount
-    console.log('AuthContext: Checking for saved user...');
-    const savedUser = localStorage.getItem('etickets-user');
+    debug.info('AuthContext: Checking for saved user...')
+    debugAuthStatus()
+    
+    const savedUser = getCurrentUser();
     if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        console.log('AuthContext: Found saved user:', parsedUser);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error('AuthContext: Error parsing saved user from localStorage', e);
-        localStorage.removeItem('etickets-user'); // Clear invalid data
-      }
+      debug.info('AuthContext: Found saved user:', savedUser);
+      setUser(savedUser);
     } else {
-      console.log('AuthContext: No saved user found.');
+      debug.info('AuthContext: No saved user found.');
     }
     setIsLoading(false);
   }, []);
@@ -48,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     
     try {
+      debug.info('AuthContext: Attempting login', { email })
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -57,27 +57,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
-      console.log('Frontend received data:', data); // Add this line for debugging
+      debug.info('AuthContext: Login response', { status: response.status, data })
 
       if (response.ok && data.success) {
         const userFromResponse = data.data.user;
         const authenticatedUser: User = {
-          id: userFromResponse?.id || 'unknown', // Fallback for id
-          email: userFromResponse?.email || '', // Fallback for email
-          name: userFromResponse?.username || '', // Fallback for name
-          role: (userFromResponse?.role || 'UNKNOWN').toUpperCase() as 'ADMIN' | 'MERCHANT', // Fallback and type assertion
-          accessToken: data.data.access || '', // Fallback for accessToken
-          refreshToken: data.data.refresh || '', // Fallback for refreshToken
+          id: userFromResponse?.id || 'unknown',
+          email: userFromResponse?.email || '',
+          name: userFromResponse?.username || '',
+          role: (userFromResponse?.role || 'UNKNOWN').toUpperCase() as 'ADMIN' | 'MERCHANT',
+          accessToken: data.data.access || '',
+          refreshToken: data.data.refresh || '',
         };
-        console.log('AuthContext: Authenticated user object:', authenticatedUser);
+        
+        debug.info('AuthContext: Authenticated user object:', authenticatedUser);
         setUser(authenticatedUser);
-        localStorage.setItem('etickets-user', JSON.stringify(authenticatedUser));
+        saveAuthUser(authenticatedUser);
+        debugAuthStatus() // Log after saving
         return true;
       } else {
+        debug.error('AuthContext: Login failed', { data })
         return false;
       }
     } catch (error) {
-      console.error('Login error:', error);
+      debug.error('AuthContext: Login error', error)
       return false;
     } finally {
       setIsLoading(false);
@@ -85,12 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const getAccessToken = (): string | null => {
-    return user?.accessToken || null;
+    const token = user?.accessToken || getAccessToken();
+    debug.info('AuthContext: getAccessToken called', { 
+      hasUser: !!user, 
+      hasTokenFromUser: !!user?.accessToken, 
+      hasTokenFromStorage: !!getAccessToken(),
+      tokenLength: token ? token.length : 0 
+    })
+    return token;
   };
 
   const logout = () => {
+    debug.info('AuthContext: Logging out')
     setUser(null)
-    localStorage.removeItem('etickets-user')
+    clearAuth()
+    debugAuthStatus()
   }
 
   return (
