@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       section
     })
 
-    const response = await fetch(`${backendUrl}/api/settings?${queryParams}`, {
+    const response = await fetch(`${backendUrl}/api/settings/?${queryParams}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest) {
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000'
     const token = request.headers.get('authorization') || ''
 
-    const response = await fetch(`${backendUrl}/api/settings`, {
+    const response = await fetch(`${backendUrl}/api/settings/`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

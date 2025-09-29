@@ -4,7 +4,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const authHeader = request.headers.get('authorization')
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}/`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader || '',
@@ -36,7 +36,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const authHeader = request.headers.get('authorization')
     const body = await request.json()
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}/`, {
       method: 'PUT',
       headers: {
         'Authorization': authHeader || '',
@@ -69,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const authHeader = request.headers.get('authorization')
     const body = await request.json()
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}/`, {
       method: 'PATCH',
       headers: {
         'Authorization': authHeader || '',
@@ -101,7 +101,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const authHeader = request.headers.get('authorization')
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/${params.id}/`, {
       method: 'DELETE',
       headers: {
         'Authorization': authHeader || '',

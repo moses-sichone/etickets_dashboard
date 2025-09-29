@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { refreshAccessToken, clearAuth } from '@/lib/auth'
 
 export interface AttendeeData {
   id: string
@@ -54,7 +55,7 @@ export function useAttendeesData(filters?: {
       if (filters?.page_size) queryParams.append('page_size', filters.page_size.toString())
 
       const queryString = queryParams.toString()
-      const url = `/api/attendees${queryString ? `?${queryString}` : ''}`
+      const url = `/api/attendees/${queryString ? `?${queryString}` : ''}`
 
       const response = await fetch(url, {
         headers: {
@@ -62,6 +63,50 @@ export function useAttendeesData(filters?: {
           'Content-Type': 'application/json',
         },
       });
+      
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        console.log('AttendeesData: Received 401, attempting token refresh')
+        
+        // Try to refresh the token
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          console.log('AttendeesData: Token refreshed successfully, retrying request')
+          // Retry the request with new token
+          const retryResponse = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (retryResponse.ok) {
+            const result = await retryResponse.json()
+            
+            // Handle different response formats
+            let attendeesData: AttendeeData[] = []
+            if (Array.isArray(result)) {
+              attendeesData = result
+            } else if (result.data && Array.isArray(result.data)) {
+              attendeesData = result.data
+            } else if (result.results && Array.isArray(result.results)) {
+              attendeesData = result.results
+            } else if (result.success && result.data && Array.isArray(result.data)) {
+              attendeesData = result.data
+            }
+            
+            setAttendees(attendeesData)
+            setLoading(false)
+            return
+          }
+        }
+        
+        // If refresh failed or retry still failed, clear auth and redirect to login
+        console.log('AttendeesData: Token refresh failed, clearing auth and redirecting')
+        clearAuth()
+        window.location.href = '/login'
+        throw new Error('Session expired. Please login again.')
+      }
       
       if (!response.ok) {
         throw new Error('Failed to fetch attendees data')

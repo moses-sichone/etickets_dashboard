@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     // Get the authorization header from the request
     const authHeader = request.headers.get('authorization')
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/dashboard/merchant`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/dashboard/merchant/`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader || '',

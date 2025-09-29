@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       status
     })
 
-    const response = await fetch(`${backendUrl}/api/attendees?${queryParams}`, {
+    const response = await fetch(`${backendUrl}/api/attendees/?${queryParams}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000'
     const token = request.headers.get('authorization') || ''
 
-    const response = await fetch(`${backendUrl}/api/attendees`, {
+    const response = await fetch(`${backendUrl}/api/attendees/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

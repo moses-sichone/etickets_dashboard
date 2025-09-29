@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('merchant_id')) queryParams.append('merchant_id', searchParams.get('merchant_id')!)
     
     const queryString = queryParams.toString()
-    const url = `${process.env.BACKEND_API_URL}/api/revenue/export${queryString ? `?${queryString}` : ''}`
+    const url = `${process.env.BACKEND_API_URL}/api/revenue/export/${queryString ? `?${queryString}` : ''}`
     
     const backendResponse = await fetch(url, {
       method: 'GET',

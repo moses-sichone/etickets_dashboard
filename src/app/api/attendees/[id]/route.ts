@@ -8,7 +8,7 @@ export async function GET(
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000'
     const token = request.headers.get('authorization') || ''
 
-    const response = await fetch(`${backendUrl}/api/attendees/${params.id}`, {
+    const response = await fetch(`${backendUrl}/api/attendees/${params.id}/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ export async function PUT(
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000'
     const token = request.headers.get('authorization') || ''
 
-    const response = await fetch(`${backendUrl}/api/attendees/${params.id}`, {
+    const response = await fetch(`${backendUrl}/api/attendees/${params.id}/`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ export async function DELETE(
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000'
     const token = request.headers.get('authorization') || ''
 
-    const response = await fetch(`${backendUrl}/api/attendees/${params.id}`, {
+    const response = await fetch(`${backendUrl}/api/attendees/${params.id}/`, {
       method: 'DELETE',
       headers: {
         'Authorization': token

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { refreshAccessToken, clearAuth } from '@/lib/auth'
 
 export interface EventData {
   id: string
@@ -54,7 +55,7 @@ export function useEventsData(filters?: {
       if (filters?.endDate) queryParams.append('endDate', filters.endDate)
 
       const queryString = queryParams.toString()
-      const url = `/api/events${queryString ? `?${queryString}` : ''}`
+      const url = `/api/events/${queryString ? `?${queryString}` : ''}`
 
       const response = await fetch(url, {
         headers: {
@@ -62,6 +63,50 @@ export function useEventsData(filters?: {
           'Content-Type': 'application/json',
         },
       });
+      
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        console.log('EventsData: Received 401, attempting token refresh')
+        
+        // Try to refresh the token
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          console.log('EventsData: Token refreshed successfully, retrying request')
+          // Retry the request with new token
+          const retryResponse = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (retryResponse.ok) {
+            const result = await retryResponse.json()
+            
+            // Handle different response formats
+            let eventsData: EventData[] = []
+            if (Array.isArray(result)) {
+              eventsData = result
+            } else if (result.data && Array.isArray(result.data)) {
+              eventsData = result.data
+            } else if (result.results && Array.isArray(result.results)) {
+              eventsData = result.results
+            } else if (result.success && result.data && Array.isArray(result.data)) {
+              eventsData = result.data
+            }
+            
+            setEvents(eventsData)
+            setLoading(false)
+            return
+          }
+        }
+        
+        // If refresh failed or retry still failed, clear auth and redirect to login
+        console.log('EventsData: Token refresh failed, clearing auth and redirecting')
+        clearAuth()
+        window.location.href = '/login'
+        throw new Error('Session expired. Please login again.')
+      }
       
       if (!response.ok) {
         throw new Error('Failed to fetch events data')

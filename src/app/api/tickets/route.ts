@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('page_size')) queryParams.append('page_size', searchParams.get('page_size')!)
     
     const queryString = queryParams.toString()
-    const url = `${process.env.BACKEND_API_URL}/api/tickets${queryString ? `?${queryString}` : ''}`
+    const url = `${process.env.BACKEND_API_URL}/api/tickets/${queryString ? `?${queryString}` : ''}`
     
     const backendResponse = await fetch(url, {
       method: 'GET',

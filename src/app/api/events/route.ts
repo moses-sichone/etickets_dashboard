@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('endDate')) queryParams.append('endDate', searchParams.get('endDate')!)
     
     const queryString = queryParams.toString()
-    const url = `${process.env.BACKEND_API_URL}/api/events${queryString ? `?${queryString}` : ''}`
+    const url = `${process.env.BACKEND_API_URL}/api/events/${queryString ? `?${queryString}` : ''}`
     
     const backendResponse = await fetch(url, {
       method: 'GET',
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const body = await request.json()
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/events/`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader || '',

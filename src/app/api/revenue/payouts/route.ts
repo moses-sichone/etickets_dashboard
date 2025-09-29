@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('page_size')) queryParams.append('page_size', searchParams.get('page_size')!)
     
     const queryString = queryParams.toString()
-    const url = `${process.env.BACKEND_API_URL}/api/revenue/payouts${queryString ? `?${queryString}` : ''}`
+    const url = `${process.env.BACKEND_API_URL}/api/revenue/payouts/${queryString ? `?${queryString}` : ''}`
     
     const backendResponse = await fetch(url, {
       method: 'GET',
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const body = await request.json()
     
-    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/revenue/payouts`, {
+    const backendResponse = await fetch(`${process.env.BACKEND_API_URL}/api/revenue/payouts/`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader || '',
