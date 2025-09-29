@@ -5,57 +5,19 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Store, Users, DollarSign, Clock, Plus, Eye, Edit } from 'lucide-react'
-
-interface MerchantData {
-  id: string
-  name: string
-  businessType: string
-  events: number
-  ticketsSold: number
-  revenue: string
-  commission: string
-  status: 'active' | 'pending' | 'suspended'
-}
-
-const mockMerchants: MerchantData[] = [
-  {
-    id: '1',
-    name: 'Live Nation',
-    businessType: 'Entertainment',
-    events: 8,
-    ticketsSold: 3245,
-    revenue: '$125,430',
-    commission: '$12,543',
-    status: 'active'
-  },
-  {
-    id: '2',
-    name: 'Sports Inc',
-    businessType: 'Sports',
-    events: 5,
-    ticketsSold: 2150,
-    revenue: '$85,600',
-    commission: '$8,560',
-    status: 'active'
-  },
-  {
-    id: '3',
-    name: 'Tech Events Co',
-    businessType: 'Technology',
-    events: 3,
-    ticketsSold: 890,
-    revenue: '$45,200',
-    commission: '$4,520',
-    status: 'pending'
-  }
-]
+import { useMerchantsData } from '@/hooks/use-merchants-data'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export function MerchantsSection() {
-  const getStatusBadge = (status: MerchantData['status']) => {
+  const { merchants, loading, error, refetch } = useMerchantsData()
+
+  const getStatusBadge = (status: 'active' | 'pending' | 'suspended' | 'rejected') => {
     const variants = {
       active: 'default',
       pending: 'secondary',
-      suspended: 'destructive'
+      suspended: 'destructive',
+      rejected: 'destructive'
     } as const
 
     return (
@@ -65,7 +27,7 @@ export function MerchantsSection() {
     )
   }
 
-  const totalStats = mockMerchants.reduce((acc, merchant) => ({
+  const totalStats = merchants.reduce((acc, merchant) => ({
     totalMerchants: acc.totalMerchants + 1,
     totalEvents: acc.totalEvents + merchant.events,
     totalTicketsSold: acc.totalTicketsSold + merchant.ticketsSold,
@@ -75,6 +37,18 @@ export function MerchantsSection() {
 
   return (
     <div className="space-y-6">
+      {/* Error State */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Error loading merchants: {error}
+            <Button variant="link" onClick={refetch} className="ml-2 p-0 h-auto">
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Merchants</h2>
@@ -101,7 +75,11 @@ export function MerchantsSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Merchants</p>
-                <p className="text-2xl font-bold">{totalStats.totalMerchants}</p>
+                {loading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">{totalStats.totalMerchants}</p>
+                )}
               </div>
               <Store className="h-8 w-8 text-indigo-600" />
             </div>
@@ -112,9 +90,13 @@ export function MerchantsSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Pending Approval</p>
-                <p className="text-2xl font-bold">
-                  {mockMerchants.filter(m => m.status === 'pending').length}
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {merchants.filter(m => m.status === 'pending').length}
+                  </p>
+                )}
               </div>
               <Clock className="h-8 w-8 text-yellow-600" />
             </div>
@@ -125,9 +107,13 @@ export function MerchantsSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Merchants</p>
-                <p className="text-2xl font-bold">
-                  {mockMerchants.filter(m => m.status === 'active').length}
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {merchants.filter(m => m.status === 'active').length}
+                  </p>
+                )}
               </div>
               <Store className="h-8 w-8 text-green-600" />
             </div>
@@ -138,7 +124,11 @@ export function MerchantsSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
-                <p className="text-2xl font-bold">${totalStats.totalRevenue.toLocaleString()}</p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <p className="text-2xl font-bold">${totalStats.totalRevenue.toLocaleString()}</p>
+                )}
               </div>
               <DollarSign className="h-8 w-8 text-purple-600" />
             </div>
@@ -149,7 +139,11 @@ export function MerchantsSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Commission</p>
-                <p className="text-2xl font-bold">${totalStats.totalCommission.toLocaleString()}</p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <p className="text-2xl font-bold">${totalStats.totalCommission.toLocaleString()}</p>
+                )}
               </div>
               <DollarSign className="h-8 w-8 text-blue-600" />
             </div>
@@ -176,6 +170,8 @@ export function MerchantsSection() {
               <TableRow>
                 <TableHead>Merchant</TableHead>
                 <TableHead>Business Type</TableHead>
+                <TableHead>Contact Person</TableHead>
+                <TableHead>Contact Email</TableHead>
                 <TableHead>Events</TableHead>
                 <TableHead>Tickets Sold</TableHead>
                 <TableHead>Revenue</TableHead>
@@ -185,27 +181,57 @@ export function MerchantsSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockMerchants.map((merchant) => (
-                <TableRow key={merchant.id}>
-                  <TableCell className="font-medium">{merchant.name}</TableCell>
-                  <TableCell>{merchant.businessType}</TableCell>
-                  <TableCell>{merchant.events}</TableCell>
-                  <TableCell>{merchant.ticketsSold.toLocaleString()}</TableCell>
-                  <TableCell className="font-medium">{merchant.revenue}</TableCell>
-                  <TableCell className="font-medium">{merchant.commission}</TableCell>
-                  <TableCell>{getStatusBadge(merchant.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
+              {loading ? (
+                // Loading skeleton rows
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-16" /></TableCell>
+                  </TableRow>
+                ))
+              ) : merchants.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    <div className="text-gray-500">
+                      <Store className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No merchants found</p>
+                      <p className="text-sm">Create your first merchant to get started</p>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                merchants.map((merchant) => (
+                  <TableRow key={merchant.id}>
+                    <TableCell className="font-medium">{merchant.name}</TableCell>
+                    <TableCell>{merchant.businessType}</TableCell>
+                    <TableCell>{merchant.contactPerson}</TableCell>
+                    <TableCell>{merchant.contactEmail}</TableCell>
+                    <TableCell>{merchant.events}</TableCell>
+                    <TableCell>{merchant.ticketsSold.toLocaleString()}</TableCell>
+                    <TableCell className="font-medium">{merchant.revenue}</TableCell>
+                    <TableCell className="font-medium">{merchant.commission}</TableCell>
+                    <TableCell>{getStatusBadge(merchant.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
